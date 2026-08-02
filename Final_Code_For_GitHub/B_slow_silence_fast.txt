@@ -1,0 +1,148 @@
+options
+  bitmapdir stimuli
+
+bitmaps
+  aims
+  target
+  distractor1
+  distractor2
+  empty
+  mask1
+  mask2
+  fixpoint
+  frame
+  therewasnone
+  toolate
+
+fonts
+  arial 20
+
+table general # this table is created with search.r
+  include search_table.txt
+
+task gendercode
+  keys f m
+  show text "press F for Female, M for Male" 0 0 # 1
+  readkey 1 30000
+  set &gender 222
+  if STATUS == CORRECT
+  set &gender 111
+  fi
+  clear 1
+  delay 500
+
+task intro_silence
+  keys space
+  show text " Silence round. SPACE to start. " 0 0 # 1
+  readkey 1 999999
+  clear 1
+  delay 500
+
+task intro_slow
+  keys space
+  show text "slow music round. please wait for the researcher, then press SPACE to start." 0 0 # 1
+  readkey 1 999999
+  clear 1
+  delay 500
+
+task intro_fast
+  keys space
+  show text "fast music round. please wait for the researcher, then press SPACE to start." 0 0 # 1
+  readkey 1 999999
+  clear 1
+  delay 500
+
+task search
+  table general
+  keys space
+  show bitmap fixpoint # 1
+  delay 100
+  clear 1
+  delay 400
+    show bitmap @4 @5 @6 # 2
+    show bitmap @7 @8 @9 # 3
+    show bitmap @10 @11 @12 # 4
+    show bitmap @13 @14 @15 # 5
+    show bitmap @16 @17 @18 # 6
+    show bitmap @19 @20 @21 # 7
+    show bitmap @22 @23 @24 # 8
+    show bitmap @25 @26 @27 # 9
+    show bitmap @28 @29 @30 # 10
+    show bitmap @31 @32 @33 # 11
+    show bitmap @34 @35 @36 # 12
+    show bitmap @37 @38 @39 # 13
+    show bitmap @40 @41 @42 # 14
+    show bitmap @43 @44 @45 # 15
+    show bitmap @46 @47 @48 # 16
+    show bitmap @49 @50 @51 # 17
+    show bitmap @52 @53 @54 # 18
+    show bitmap @55 @56 @57 # 19
+    show bitmap @58 @59 @60 # 20
+    show bitmap @61 @62 @63 # 21
+  readkey 1 4000
+  set &x 0 # this means, there was no error
+  if STATUS == CORRECT # means space pressed, might be incorrect though
+    if @2 == 0 # there was none
+      show bitmap therewasnone 0 200 # 22
+      delay 2000
+      clear 22
+      delay 500
+      show bitmap mask1 # 23
+      delay 100
+      show bitmap mask2 # 24
+      delay 100
+      clear range 1 24
+      set &x 1
+    fi
+  fi
+  if STATUS == TIMEOUT # means space pressed, might be incorrect though
+    if @2 == 1 # there was one, now show it on yellow background
+      show bitmap toolate 0 200 # 22
+      show bitmap frame  @5 @6  # 23
+      show bitmap target @5 @6  # 24
+      delay 2000
+      clear 22
+      delay 500
+      show bitmap mask1 # 25
+      delay 100
+      show bitmap mask2 # 26
+      delay 100
+      clear range 1 26
+      set &x 1
+    fi
+  fi
+  if &x == 0
+    show bitmap mask1 # 22
+    delay 100
+    show bitmap mask2 # 23
+    delay 100
+    clear range 1 23
+  fi
+  delay 1000
+  save &gender BLOCKNAME @1 @2 @3 STATUS RT &x
+
+#----------------------------------------------------------------------
+# blocks
+# ----------------------------------------------------------------------
+
+message aims
+
+block slow
+  tasklist
+    gendercode 1
+    intro_slow 1 
+    search 50 all_before_repeat
+  end
+ 
+ block silence 
+  tasklist
+    intro_silence 1
+    search 50 all_before_repeat
+  end 
+
+block fast
+  tasklist
+    intro_fast 1
+    search 50 all_before_repeat
+  end
+
