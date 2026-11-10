@@ -20,7 +20,7 @@ close all;
 
 %% 1. Automatically use all participant files in the current MATLAB folder
 
-path = pwd;
+path = uigetdir(pwd, 'Choose folder with participant files');
 
 xlsx_files = dir(fullfile(path, '*.xlsx'));
 xls_files  = dir(fullfile(path, '*.xls'));
@@ -70,7 +70,13 @@ total_fast    = NaN(n_subjects,1);
 for s = 1:n_subjects
 
     filename = fullfile(path, files{s});
-    T = readtable(filename, 'VariableNamingRule', 'preserve');
+    % Read exactly the experimental table: header + 150 trial rows.
+    % This avoids Excel notes/used-range artifacts outside A:H.
+    T = readtable(filename, 'Range', 'A1:H151', 'VariableNamingRule', 'preserve');
+
+    if height(T) ~= 150
+        error('%s: expected 150 experimental trials, read %d.', files{s}, height(T));
+    end
 
     [~, name, ~] = fileparts(files{s});
     subject_id(s) = string(name);
@@ -93,6 +99,12 @@ for s = 1:n_subjects
     total_silence(s) = sum(idx_silence);
     total_slow(s)    = sum(idx_slow);
     total_fast(s)    = sum(idx_fast);
+
+    % Verify the expected design: exactly 50 trials per condition.
+    if any([total_silence(s), total_slow(s), total_fast(s)] ~= 50)
+        error('%s: expected 50 trials in each condition; found Silence=%d, Slow=%d, Fast=%d.', ...
+            files{s}, total_silence(s), total_slow(s), total_fast(s));
+    end
 
     %% Correct trials per condition
     % error == 0 means correct
@@ -312,7 +324,17 @@ function make_paired_accuracy_graph(data_A, data_B, ...
 
     %% Paired t-test
 
-    [~, p, ~, stats] = ttest(data_A, data_B);
+    [~, p_raw, ~, stats] = ttest(data_A, data_B);
+
+    %% Bonferroni correction
+    % Three pairwise comparisons were performed:
+    % slow vs fast, silence vs fast, and silence vs slow
+
+    N_COMPARISONS = 3;
+    p_bonferroni = min(p_raw * N_COMPARISONS, 1);
+
+    fprintf('Raw p = %.4f\n', p_raw);
+    fprintf('Bonferroni p = %.4f\n', p_bonferroni);
 
     mean_A = mean(data_A, 'omitnan');
     mean_B = mean(data_B, 'omitnan');
@@ -321,12 +343,13 @@ function make_paired_accuracy_graph(data_A, data_B, ...
     mean_difference = mean(difference, 'omitnan');
 
     %% Significance stars
+    % Based on Bonferroni-corrected p-value
 
-    if p < 0.001
+    if p_bonferroni < 0.001
         stars = '***';
-    elseif p < 0.01
+    elseif p_bonferroni < 0.01
         stars = '**';
-    elseif p < 0.05
+    elseif p_bonferroni < 0.05
         stars = '*';
     else
         stars = 'n.s.';
@@ -425,7 +448,7 @@ function make_paired_accuracy_graph(data_A, data_B, ...
 
     ylabel('Accuracy (%)');
     xlabel('Auditory Condition');
-    title(graph_title);
+    title([graph_title ' - Bonferroni corrected']);
 
     grid on;
     box off;
@@ -438,13 +461,15 @@ function make_paired_accuracy_graph(data_A, data_B, ...
         'Mean %s = %.1f%%\n' ...
         '%s - %s = %.1f%%\n' ...
         't(%d) = %.2f\n' ...
-        'p = %.4f'], ...
+        'Raw p = %.4f\n' ...
+        'Bonferroni p = %.4f'], ...
         n, ...
         label_A, mean_A, ...
         label_B, mean_B, ...
         label_B, label_A, mean_difference, ...
         stats.df, stats.tstat, ...
-        p);
+        p_raw, ...
+        p_bonferroni);
 
     text(0.58, 86.2, result_text, ...
         'FontSize', 10.5, ...
