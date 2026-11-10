@@ -1,15 +1,17 @@
 %% ============================================================
-% LINEAR MIXED-EFFECTS MODEL
+% LINEAR MIXED-EFFECTS MODEL - LOG REACTION TIME
 %
 % RESEARCH QUESTION:
 %
 % Does auditory condition predict reaction time
-% AFTER controlling for presentation order?
+% after controlling for presentation round?
 %
 % OUTCOME VARIABLE:
-% Standardized Reaction Time (Z_RT)
+%
+% RT_new = log-transformed reaction time.
 %
 % PREDICTORS:
+%
 % 1. Auditory Condition:
 %       Silence
 %       Slow
@@ -22,34 +24,39 @@
 %
 % MODEL:
 %
-% Z_RT ~ Condition + Round + (1 | Subject)
+% RT_new ~ Condition + Round + (1 | Subject)
 %
 % INTERPRETATION:
 %
-% The Condition effect tells us whether auditory condition
-% is associated with reaction time when presentation order
-% is statistically held constant.
+% The Condition effect tests whether auditory condition
+% is associated with reaction time after controlling for
+% presentation round.
 %
-% The Round effect tells us whether response time changes
-% between the first, second, and third rounds,
-% independently of auditory condition.
+% The Round effect tests whether reaction time changes
+% between the first, second, and third rounds, independently
+% of auditory condition.
 %
-% STANDARDIZATION:
+% The random intercept for Subject accounts for repeated
+% responses from the same participant and for general
+% differences in response speed between participants.
 %
-% For EACH participant separately:
+% RT TRANSFORMATION:
 %
-% 1. Take all valid RT trials from all 3 conditions together
-% 2. Convert the complete valid RT list to Z-scores
-% 3. Keep each individual trial as one observation
+% Reaction times were log-transformed because RT data are
+% usually right-skewed. The log transformation reduces the
+% influence of very slow responses and makes the distribution
+% more suitable for a linear model.
 %
-% IMPORTANT:
+% OUTLIER HANDLING:
 %
-% REMOVE_OUTLIERS = false;
+% Trial-level outliers were removed within each participant
+% if their log RT was more than 2 standard deviations above
+% or below that participant's mean log RT.
 %
-% means:
-% Subjects 6 and 8 are removed for consistency
-% with the main inferential RT analyses.
-%
+% Subject-level outliers were checked automatically based on
+% each participant's mean log RT. No participants were removed
+% unless they exceeded the predefined criterion.
+%% ============================================================
 % Change to false to keep all participants.
 %% ============================================================
 
@@ -167,10 +174,9 @@ for s = 1:n_subjects_original
     %% Read file
 
     T = readtable( ...
-        filename, ...
-        'VariableNamingRule', ...
-        'preserve');
-
+    filename, ...
+    'VariableNamingRule', ...
+    'preserve');
 
     %% Participant name
 
@@ -1470,8 +1476,7 @@ xlabel( ...
     'Auditory Condition');
 
 
-ylabel( ...
-    'Adjusted log Reaction Time');
+ylabel('Adjusted log Reaction Time');
 
 title( ...
     { ...
@@ -1798,19 +1803,13 @@ xticklabels( ...
     round_labels);
 
 
-xlabel( ...
-    'Presentation Round');
+xlabel('Presentation Round');
 
+ylabel('Adjusted log Reaction Time');
 
-ylabel( ...
-    'Adjusted Standardized Reaction Time (Z)');
-
-
-title( ...
-    { ...
-    'Round Effect After Controlling for Condition'; ...
-    'Lower Z = Faster Responses' ...
-    });
+title(sprintf('Adjusted Effect of Presentation Round on Reaction Time\nLower log RT = Faster Responses'), ...
+    'FontWeight', 'bold', ...
+    'FontSize', 14);
 
 
 grid on;
